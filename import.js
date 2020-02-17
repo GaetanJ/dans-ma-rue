@@ -10,7 +10,7 @@ async function run() {
   const client = new Client({ node: config.get("elasticsearch.uri") });
   let dataset = [];
 
-  client.indices.create({ index: "dans_ma_rue" }, (err, resp) => {
+  client.indices.create({ index: indexName }, (err, resp) => {
     if (err) console.trace(err.message);
   });
 
@@ -41,17 +41,20 @@ async function run() {
         location: JSON.parse(data.geo_shape).coordinates.toString()
       });
     })
-    .on("end", () => {
+    .on("end", async() => {
       // TODO il y a peut être des choses à faire à la fin aussi ?
-      dataset = _.chunk(dataset, 5000);
-      dataset.forEach(subArray => {
-        client.bulk(createBulkInsertQuery(subArray), (err, resp) => {
-          if (err) console.trace(err.message);
-          else console.log(`Inserted ${resp.body.items.length} anomaly`);
-          client.close();
-        });
-      });
+      dataset = _.chunk(dataset, 20000);
 
+      for(let i=0; i < dataset.length; i++) {
+          try {
+            await client.bulk(createBulkInsertQuery(dataset[i]));
+          }
+          catch {
+              console.log("errors");
+          }
+       
+      }
+      client.close();
       console.log("Terminated!");
     });
 }
