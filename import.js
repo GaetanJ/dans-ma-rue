@@ -24,7 +24,12 @@ async function run() {
     body: {
       properties: {
         location: {
-          type: "geo_point"
+          type: "geo_point",
+          fields: {
+            raw_location: {
+              type: "keyword"
+            }
+          }
         }
       }
     }
@@ -53,7 +58,8 @@ async function run() {
         prefixe: data.PREFIXE,
         intervenant: data.INTERVENANT,
         conseil_de_quartier: data["CONSEIL DE QUARTIER"],
-        location: data.geo_point_2d
+        location: data.geo_point_2d,
+        month_year: data["MOIS DECLARATION"] + "/" + data["ANNEE DECLARATION"]
       });
     })
     .on("end", async () => {
