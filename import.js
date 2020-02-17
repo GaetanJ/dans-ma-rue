@@ -10,16 +10,25 @@ async function run() {
   const client = new Client({ node: config.get("elasticsearch.uri") });
   let dataset = [];
 
-  client.indices.create(
+  await client.indices.create(
     {
-      index: indexName,
-      body: { mappings: { properties: { location: "geo_point" } } }
+      index: indexName
     },
     (err, resp) => {
       if (err) console.trace(err.message);
     }
   );
 
+  await client.indices.putMapping({
+    index: indexName,
+    body: {
+      properties: {
+        location: {
+          type: "geo_point"
+        }
+      }
+    }
+  });
   // TODO il y a peut être des choses à faire ici avant de commencer ...
 
   // Read CSV file
@@ -44,21 +53,19 @@ async function run() {
         prefixe: data.PREFIXE,
         intervenant: data.INTERVENANT,
         conseil_de_quartier: data["CONSEIL DE QUARTIER"],
-        location: JSON.parse(data.geo_shape).coordinates.toString()
+        location: data.geo_point_2d
       });
     })
-    .on("end", async() => {
+    .on("end", async () => {
       // TODO il y a peut être des choses à faire à la fin aussi ?
       dataset = _.chunk(dataset, 20000);
 
-      for(let i=0; i < dataset.length; i++) {
-          try {
-            await client.bulk(createBulkInsertQuery(dataset[i]));
-          }
-          catch {
-              console.log("errors");
-          }
-       
+      for (let i = 0; i < dataset.length; i++) {
+        try {
+          await client.bulk(createBulkInsertQuery(dataset[i]));
+        } catch {
+          console.log("errors");
+        }
       }
       client.close();
       console.log("Terminated!");
