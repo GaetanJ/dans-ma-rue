@@ -39,12 +39,14 @@ exports.statsByType = (client, callback) => {
             aggs: {
                 types: {
                     terms: {
-                        field: 'type.keyword'
+                        field: 'type.keyword',
+                        size: 5
                     },
                     aggs: {
                         soustypes: {
                             terms: {
-                                field: 'sous_type.keyword'
+                                field: 'sous_type.keyword',
+                                size: 5
                             }
                         }
                     }
@@ -70,11 +72,61 @@ exports.statsByType = (client, callback) => {
 }
 
 exports.statsByMonth = (client, callback) => {
-    // TODO Trouver le top 10 des mois avec le plus d'anomalies
-    callback([]);
+    client.search({
+        index: indexName,
+        size: 0,
+        body: {
+            aggs: {
+                month_year: {
+                    terms: {
+                        field: 'month_year.keyword',
+                        size: 10
+                    }
+                }
+            }
+        }
+    })
+    .then(resp => {
+        
+        let res = resp.body.aggregations.month_year.buckets.map(elem => {
+            return {
+                month: elem.key,
+                count: elem.doc_count
+            }
+        })
+        callback(res);
+    })
 }
 
 exports.statsPropreteByArrondissement = (client, callback) => {
     // TODO Trouver le top 3 des arrondissements avec le plus d'anomalies concernant la propreté
-    callback([]);
+    client.search({
+        index: indexName,
+        size: 0,
+        body: {
+            query: {
+                bool: { 
+                    must: {
+                        match: { type:   "Propreté" }
+                    },
+                }
+            },
+            aggs: {
+                arrondissements: {
+                    terms: {
+                        field: 'arrondissement.keyword',
+                        size: 3
+                    }
+                }
+            }
+        }
+    }).then(resp => {
+        callback(resp.body.aggregations.arrondissements.buckets.map(elem => {
+            return {
+                arrondissement: elem.key,
+                count: elem.doc_count
+            }
+        }));
+    })
+    
 }
