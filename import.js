@@ -10,9 +10,15 @@ async function run() {
   const client = new Client({ node: config.get("elasticsearch.uri") });
   let dataset = [];
 
-  client.indices.create({ index: indexName }, (err, resp) => {
-    if (err) console.trace(err.message);
-  });
+  client.indices.create(
+    {
+      index: indexName,
+      body: { mappings: { properties: { location: "geo_point" } } }
+    },
+    (err, resp) => {
+      if (err) console.trace(err.message);
+    }
+  );
 
   // TODO il y a peut être des choses à faire ici avant de commencer ...
 
