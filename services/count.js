@@ -25,18 +25,19 @@ exports.count = (client, from, to, callback) => {
 };
 
 exports.countAround = (client, lat, lon, radius, callback) => {
-  // TODO Compter le nombre d'anomalies autour d'un point géographique, dans un rayon donné
   client
-    .count({
+    .search({
       index: indexName,
       body: {
         query: {
-          range: {
-            location: {
-              distance: radius,
-              "pin.location": {
-                lat: lat,
-                lon: lon
+          bool: {
+            must: {
+              match_all: {}
+            },
+            filter: {
+              geo_distance: {
+                distance: radius,
+                location: [lon, lat]
               }
             }
           }
@@ -45,7 +46,7 @@ exports.countAround = (client, lat, lon, radius, callback) => {
     })
     .then(resp => {
       callback({
-        count: resp.body.count
+        count: resp.body.hits.total.value
       });
     });
 };
